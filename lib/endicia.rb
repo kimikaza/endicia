@@ -328,7 +328,7 @@ module Endicia
   #       :form_number   => 12345, # Form Number for refunded label
   #       :response_body => "the response body"
   #     }
-  def self.refund_request(tracking_number, options = {})
+  def self.refund_request(tracking_number, options = {})        
     xml = Builder::XmlMarkup.new.RefundRequest do |xml|
       xml.AccountID(options[:AccountID] || defaults[:AccountID])
       xml.PassPhrase(options[:PassPhrase] || defaults[:PassPhrase])
@@ -339,10 +339,13 @@ module Endicia
     params = { :method => 'RefundRequest', :XMLInput => URI.encode(xml) }
     result = self.get(els_service_url(params))
 
+    response_body = result.body
+
     response = {
       :success => false,
       :error_message => nil,
-      :response_body => result.body
+      :response_body => response_body,
+      :form_number => nil
     }
 
     # TODO: It is possible to make a batch refund request, currently this only
@@ -354,8 +357,8 @@ module Endicia
         response[:form_number]   = result['FormNumber']
 
         result = result['RefundList']['PICNumber']
-        response[:success]       = (result.match(/<IsApproved>YES<\/IsApproved>/) ? true : false)
-        response[:error_message] = result.match(/<ErrorMsg>(.+)<\/ErrorMsg>/)[1]
+        response[:success]       = (response_body.match(/<IsApproved>YES<\/IsApproved>/) ? true : false)
+        response[:error_message] = response_body.match(/<ErrorMsg>(.+)<\/ErrorMsg>/)[1]
       end
     end
 
